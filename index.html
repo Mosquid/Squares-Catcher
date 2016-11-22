@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Game example</title>
+	<style>
+		#canvas {
+			width: 500px;
+			height: 500px;
+			border: 1px solid red;
+			margin: 0 auto;
+			position: relative;
+		}
+
+		.square {
+			box-shadow: inset 0 0 1px red;
+			position: absolute;
+		}
+		#player {
+			box-shadow: inset 0 0 15px black;
+		}
+		#stats {
+			text-align: center;
+			margin-bottom: 20px;
+		}
+	</style>
+</head>
+<body>
+	<div id="stats">
+		<h3 id="killed">0</h3> Enemies killed
+	</div>
+	<div id="canvas">
+		
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+	<script>
+		(function($){
+			let killed = 0;
+			let sqWidth = 50;
+			let sqHeight = 50;
+			let canvas = $('#canvas');
+			let timerr;
+			let stats = $('#killed');
+			let SQ = function(x, y, color) {
+				let sq = $('<span>');
+
+				sq.addClass('square');
+				sq.css({
+					width: sqWidth,
+					height: sqHeight,
+					left: x,
+					top: y
+				});
+
+				if( color )
+					sq.css({backgroundColor: color});
+
+				return sq;
+			}
+
+			let randomColor = function() {
+				let colors = ['#ff0000', '#ffff00', '#00ff00', '#0000ff'];
+				let rand = Math.floor(Math.random() * 4)
+				let randColor = colors[rand];
+
+				return randColor;
+			}
+
+			let getRandomAxis = function() {
+				let x = Math.floor(Math.random() * 9) * sqWidth;
+				let y = Math.floor(Math.random() * 9) * sqHeight;
+
+				return {
+					x: x,
+					y: y
+				}
+			}
+
+
+			let createEnemy = function(single) {
+				single = single || false;
+				let prevAxis = false;
+				clearTimeout(timerr)
+				let max = single ? 1 : 2;
+				for( let i = 0; i < max; i++ ) {
+					let axis = getRandomAxis();
+					prevAxis = !prevAxis ? axis : prevAxis;
+					if( JSON.stringify(prevAxis) == JSON.stringify(axis) ) {
+						i--;
+						continue;
+					}
+					let x = axis.x;
+					let y = axis.y;
+					let color = $('#player').css('backgroundColor');
+					if( i > 0 ) {
+						let rand = randomColor()
+						color = rgb2hex(color);
+						console.log(color, rand);
+						if( color == rand ) {						
+							i--;
+							continue;
+						}
+						color = rand;
+					}
+					let sq = new SQ(x, y, color);
+						sq.addClass('enemy');
+					if( isCollision(true) ) {
+						createEnemy();
+					}
+					canvas.append(sq);
+				}
+
+
+				timerr = setTimeout(function(){
+					$('.enemy').remove();
+					createEnemy();
+				}, 1500);
+			}
+
+			let isCollision = function(first) {
+				let player = $('#player');
+				let enemy = $('.enemy');
+
+				enemy.each(function(){
+					let $th = $(this);
+					if( player.css('top') == $th.css('top') && player.css('left') == $th.css('left') ) {
+
+						if( first )
+							return true
+						enemy.remove();
+
+						if( player.css('backgroundColor') == $th.css('backgroundColor') ) {
+							killed++
+						} else {
+							killed--
+						}
+						stats.text(killed);
+						createEnemy();
+					}
+				});
+			}
+
+			let movePlayer = function(dir) {
+
+				let player = $('#player');
+				if( !player.length || !dir )
+					return false;
+
+				let curX = parseInt(player.css('left').replace('px', ''));
+				let curY = parseInt(player.css('top').replace('px', ''));
+				let x = curX;
+				let y = curY;
+
+				switch(dir) {
+			        case 'up':
+			        y = y-sqHeight
+			        break;
+
+			        case 'down':
+			        y = y+sqHeight
+			        break;
+
+			        case 'left':
+			        x = x-sqWidth
+			        break;
+
+			        case 'right':
+			        x = x+sqWidth
+			        break;
+
+			        default: return;
+			    }
+				if( (x > 900 || y > 900) || (y < 0 || x < 0) )
+					return false;
+
+				player.css({
+					left: x,
+					top: y
+				});
+
+				isCollision();
+			}
+
+			let createPlayer = function (){
+				let color = randomColor();
+				let player = new SQ(0, 0, color);
+				player.attr('id', 'player');
+				canvas.append(player);
+			}
+
+			let generatingMap = function() {
+				for(var i = 0; i < 100; i++) {
+					let top = (Math.floor(i/10)) * sqHeight;
+					let left = i*sqWidth - (500*Math.floor(i/10));
+					let sq = new SQ(left, top);
+					canvas.append(sq)
+				}
+			}
+
+			function rgb2hex(rgb) {
+			    rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+			    function hex(x) {
+			        return ("0" + parseInt(x).toString(16)).slice(-2);
+			    }
+			    return "#" + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
+			}
+
+
+			$('body').keydown(function(e){
+				let key = e.key;
+
+				switch(key) {
+			        case 'ArrowUp':
+			        movePlayer('up')
+			        break;
+
+			        case 'ArrowDown':
+			        movePlayer('down')
+			        break;
+
+			        case 'ArrowLeft':
+			        movePlayer('left')
+			        break;
+
+			        case 'ArrowRight':
+			        movePlayer('right')
+			        break;
+
+			        default: return;
+			    }
+			    e.preventDefault();
+			})
+
+			generatingMap();
+			createPlayer();
+			createEnemy();
+		})(jQuery);
+	</script>
+</body>
+</html>
